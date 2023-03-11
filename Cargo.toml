@@ -4,9 +4,9 @@ version = "0.1.6"
 edition = "2021"
 authors = ["Miguel Granero"]
 description = "Simple argument parser for small applications"
-license = "BSD-3-Clause"
+license = "MIT"
 keywords = ["argument", "arg", "parser"]
-repository = "https://github.com/Migran99/rust-tools"
+repository = "https://github.com/Migran99/migparser"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
