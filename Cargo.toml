@@ -1,0 +1,16 @@
+[package]
+name = "migparser"
+version = "0.1.6"
+edition = "2021"
+authors = ["Miguel Granero"]
+description = "Simple argument parser for small applications"
+license = "BSD-3-Clause"
+keywords = ["argument", "arg", "parser"]
+repository = "https://github.com/Migran99/rust-tools"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+strum = "0.24"
+strum_macros = "0.24"
+migformatting = "0.1.0"
