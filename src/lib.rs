@@ -2,7 +2,7 @@ use std::{env};
 use migformatting::Formatting;
 
 mod argument;
-pub use argument::{DataType, ExtractFromContents, ArgumentOptions, Argument};
+pub use argument::{DataType, ExtractFromContents, ArgumentOption, Argument};
 use argument::{Content, ArgumentType};
 /* TODO
 
@@ -24,25 +24,22 @@ impl ArgumentParser {
     }
 
     // Arguments functions
-    pub fn add_argument(&mut self, name: &str, data_type: DataType ,options_: Option<Vec<&str>>, default_value: Option<Content>) {
+    pub fn add_argument(&mut self, name: &str, data_type: DataType ,options_: Option<Vec<ArgumentOption>>, default_value: Option<Content>) {
         /* Set-up*/
         let mut data: Option<Content> = default_value;
-        let mut options = match options_ {
-            Some(c) => c.iter().map(|&f| String::from(f)).collect(),
-            None => vec![]
-        };
+        let mut options = options_.unwrap_or_default();
 
         /* Bool */
         if data_type == DataType::Bool
         {
-            if options.contains(&ArgumentOptions::STORE_FALSE.to_owned()) {
+            if options.contains(&ArgumentOption::StoreFalse) {
                 data = Some(Content::Bool(true));
             }
-            else { /* STORE_TRUE by default */
+            else { /* StoreTrue by default */
                 data = Some(Content::Bool(false));
 
-                if !options.contains(&ArgumentOptions::STORE_FALSE.to_owned()) {
-                    options.push(ArgumentOptions::STORE_TRUE.to_owned());
+                if !options.contains(&ArgumentOption::StoreFalse) {
+                    options.push(ArgumentOption::StoreTrue);
                 }
             }
         }
@@ -58,8 +55,8 @@ impl ArgumentParser {
                     },
                     ArgumentType::Positional => {
                         // Add the necesary option if not already
-                        if !options.contains(&ArgumentOptions::NECESSARY.to_owned()) {
-                                options.push(ArgumentOptions::NECESSARY.to_owned()); 
+                        if !options.contains(&ArgumentOption::Necessary) {
+                                options.push(ArgumentOption::Necessary); 
                         }
                         index = self.positional_cursor;
                     },
@@ -148,10 +145,10 @@ impl ArgumentParser {
                     used_arguments[i] = true;
 
                     /* TODO: match per data_type */
-                    if opt.has_option(ArgumentOptions::STORE_TRUE) && opt.data_type == DataType::Bool{
+                    if opt.has_option(ArgumentOption::StoreTrue) && opt.data_type == DataType::Bool{
                         opt.set_data(Content::Bool(true));
                     }
-                    else if opt.has_option(ArgumentOptions::STORE_FALSE) && opt.data_type == DataType::Bool {
+                    else if opt.has_option(ArgumentOption::StoreFalse) && opt.data_type == DataType::Bool {
                         opt.set_data(Content::Bool(false));
                     }
                     else {
@@ -165,7 +162,7 @@ impl ArgumentParser {
                     opt.set_parsed();
                 }
             }
-            if !opt.is_parsed() && opt.has_option(ArgumentOptions::NECESSARY) {
+            if !opt.is_parsed() && opt.has_option(ArgumentOption::Necessary) {
                 println!("{}", format!("Necessary argument '{}' is not present", opt.name).error());
                 panic!();
             }
