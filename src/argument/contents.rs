@@ -40,11 +40,11 @@ impl Content {
     }
     pub fn get_type(&self) -> DataType {
         match self {
-            Content::Bool(c) => DataType::Bool,
-            Content::Int(c) => DataType::Int,
-            Content::Uint(c) => DataType::Uint,
-            Content::String(c) => DataType::String,
-            Content::Float(c) => DataType::Float,
+            Content::Bool(_) => DataType::Bool,
+            Content::Int(_) => DataType::Int,
+            Content::Uint(_) => DataType::Uint,
+            Content::String(_) => DataType::String,
+            Content::Float(_) => DataType::Float,
         }
     }
 }

@@ -1,5 +1,4 @@
 mod contents;
-
 pub use contents::Content;
 pub use contents::{DataType, ExtractFromContents};
 /*
@@ -50,12 +49,13 @@ impl Argument {
         data_type_: DataType,
         options_: Option<Vec<ArgumentOption>>,
         index_: i32,
+        default_val: Option<Content>
     ) -> Self {
         Argument {
             name: name_.to_owned(),
             cl_identifiers: cl_identifiers_,
             data_type: data_type_,
-            data: None,
+            data: default_val,
             options: options_.unwrap_or_default(),
             parsed: false,
             index: index_, /* Only settable at instantiation new_positional */
@@ -66,8 +66,9 @@ impl Argument {
         cl_identifiers_: Vec<String>,
         data_type_: DataType,
         options_: Option<Vec<ArgumentOption>>,
+        default_val: Option<Content>
     ) -> Self {
-        Argument::new(name_, cl_identifiers_, data_type_, options_, -1)
+        Argument::new(name_, cl_identifiers_, data_type_, options_, -1, default_val)
     }
 
     pub fn new_positional(
@@ -77,15 +78,16 @@ impl Argument {
         options_: Option<Vec<ArgumentOption>>,
         index_: i32,
     ) -> Self {
-        Argument::new(name_, cl_identifiers_, data_type_, options_, index_)
+        Argument::new(name_, cl_identifiers_, data_type_, options_, index_, None)
     }
 
     pub fn new_flag(
         name_: &str,
         cl_identifiers_: Vec<String>,
         options_: Option<Vec<ArgumentOption>>,
+        default_val: Option<Content>
     ) -> Self {
-        Argument::new(name_, cl_identifiers_, DataType::Bool, options_, -1)
+        Argument::new(name_, cl_identifiers_, DataType::Bool, options_, -1, default_val)
     }
 
     /* AUX */
@@ -117,18 +119,22 @@ impl Argument {
         self.index
     }
 
-    pub fn get_type(name: &str) -> Option<ArgumentType> {
+    pub fn get_type(name: &str, options: &Vec<ArgumentOption>, data_type_: &DataType) -> Option<ArgumentType> {
         if name.is_empty() {
             return None;
         }
-
-        let is_flag = name.starts_with("-");
-
-        if is_flag {
+        
+        if name.starts_with("-") {
+            /* Flag or optional */
+            if *data_type_ == DataType::Bool && 
+                (options.contains(&ArgumentOption::StoreFalse) || options.contains(&ArgumentOption::StoreTrue))
+            {
+                return Some(ArgumentType::Flag);
+            }
             return Some(ArgumentType::Optional);
-        } else {
-            return Some(ArgumentType::Positional);
         }
+        
+        return Some(ArgumentType::Positional);
     }
 
     pub fn parse_name(name: &str) -> Option<String> {

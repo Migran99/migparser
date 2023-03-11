@@ -2,8 +2,8 @@ use std::{env};
 use migformatting::Formatting;
 
 mod argument;
-pub use argument::{DataType, ExtractFromContents, ArgumentOption, Argument};
-use argument::{Content, ArgumentType};
+pub use argument::{DataType, ExtractFromContents, ArgumentOption, Argument, ArgumentType};
+use argument::{Content};
 /* TODO
 
     - Positionals
@@ -18,15 +18,48 @@ pub struct ArgumentParser {
 
 impl ArgumentParser {
 
-    // Instantiation
+    /* Creation */
     pub fn new() -> ArgumentParser {
         ArgumentParser {arguments: vec![], positional_cursor: 0}
     }
 
-    // Arguments functions
-    pub fn add_argument(&mut self, name: &str, data_type: DataType ,options_: Option<Vec<ArgumentOption>>, default_value: Option<Content>) {
+    /* Argument type handler */
+    fn add_flag(&mut self, 
+        name: String, 
+        identifiers: Vec<String>, 
+        options: Option<Vec<ArgumentOption>>,
+        default_val: Option<Content>) -> Result<(), String> {
+
+        self.arguments.push(Argument::new_flag(&name, identifiers, options, default_val));
+        Ok(())
+    }
+
+    fn add_positional(&mut self, 
+        name: String, 
+        identifiers: Vec<String>,
+        data_type: DataType, 
+        options: Option<Vec<ArgumentOption>>,
+        index: i32) -> Result<(), String> {
+        
+        self.arguments.push(Argument::new_positional(&name, identifiers, data_type, options, index));
+        Ok(())
+    }
+
+    fn add_optional(&mut self, 
+        name: String, 
+        identifiers: Vec<String>,
+        data_type: DataType, 
+        options: Option<Vec<ArgumentOption>>,
+        default_val: Option<Content>) -> Result<(), String> {
+        
+        self.arguments.push(Argument::new_optional(&name, identifiers, data_type, options, default_val));
+        Ok(())
+    }
+
+    /* Argument API */
+    pub fn add_argument(&mut self, name: &str, alias: Option<Vec<String>>, data_type: DataType ,options_: Option<Vec<ArgumentOption>>, default_value: Option<Content>) -> Result<(), String> {
         /* Set-up*/
-        let mut data: Option<Content> = default_value;
+        let mut data: Option<Content> = default_value.clone();
         let mut options = options_.unwrap_or_default();
 
         /* Bool */
@@ -44,42 +77,42 @@ impl ArgumentParser {
             }
         }
 
+        let arg_name = match Argument::parse_name(name) {
+            Some(n) => { n },
+            None => { name.into() },
+        };
+        let cl_name = name.to_owned(); // keeping --arg if present
+        let mut identifiers = vec![cl_name.clone()];
+        if let Some(mut i) =  alias{
+            identifiers.append(&mut i);
+        }
+
         /* Positional - Optional - Flags */
-        let argument_type = Argument::get_type(name);
-        let mut index: i32 = -1;
+        let argument_type = Argument::get_type(name, &options, &data_type);
         match argument_type {
             Some(t) => {
                 match t {
                     ArgumentType::Optional => {
-                        // Do nothing
+                        self.add_optional(arg_name, identifiers, data_type, Some(options), data)?;
                     },
                     ArgumentType::Positional => {
                         // Add the necesary option if not already
                         if !options.contains(&ArgumentOption::Necessary) {
                                 options.push(ArgumentOption::Necessary); 
                         }
-                        index = self.positional_cursor;
+                        let index = self.positional_cursor;
+                        self.positional_cursor = self.positional_cursor + 1;
+                        self.add_positional(arg_name, identifiers, data_type, Some(options), index)?;
                     },
                     ArgumentType::Flag => {
-
+                        self.add_flag(arg_name, identifiers, Some(options), data)?;
                     }
                 }
 
             },
-            None => {},
+            None => {return Err("Invalid name for arg!".to_owned());},
         }
-
-        let arg_name = match Argument::parse_name(name) {
-            Some(n) => { n },
-            None => { name.into() },
-        };
-        let cl_name = name.to_owned(); // keeping --arg if present
-        
-        self.arguments.push(Argument::new_optional(
-                            arg_name.as_str(), 
-                            vec![cl_name], 
-                            data_type, 
-                            Some(options)));
+        Ok(())
     }
 
     fn parse_text<T: std::str::FromStr>(text: &String) -> Option<T>{
