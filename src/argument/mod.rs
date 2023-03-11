@@ -9,7 +9,9 @@ TODO:
    - encapsulation of parsed, index, data (protected components)
 
 */
-
+#[derive(PartialEq)]
+#[derive(Debug)]
+#[derive(Clone, Copy)]
 pub enum ArgumentType {
     Positional,
     Optional,
@@ -34,6 +36,7 @@ pub struct Argument {
     pub options: Vec<ArgumentOption>,
     parsed: bool,
     index: i32,
+    arg_type: ArgumentType
 }
 impl Argument {
     /* Creators
@@ -49,7 +52,8 @@ impl Argument {
         data_type_: DataType,
         options_: Option<Vec<ArgumentOption>>,
         index_: i32,
-        default_val: Option<Content>
+        default_val: Option<Content>,
+        arg_type_: ArgumentType
     ) -> Self {
         Argument {
             name: name_.to_owned(),
@@ -59,6 +63,7 @@ impl Argument {
             options: options_.unwrap_or_default(),
             parsed: false,
             index: index_, /* Only settable at instantiation new_positional */
+            arg_type: arg_type_
         }
     }
     pub fn new_optional(
@@ -68,7 +73,7 @@ impl Argument {
         options_: Option<Vec<ArgumentOption>>,
         default_val: Option<Content>
     ) -> Self {
-        Argument::new(name_, cl_identifiers_, data_type_, options_, -1, default_val)
+        Argument::new(name_, cl_identifiers_, data_type_, options_, -1, default_val, ArgumentType::Optional)
     }
 
     pub fn new_positional(
@@ -78,7 +83,7 @@ impl Argument {
         options_: Option<Vec<ArgumentOption>>,
         index_: i32,
     ) -> Self {
-        Argument::new(name_, cl_identifiers_, data_type_, options_, index_, None)
+        Argument::new(name_, cl_identifiers_, data_type_, options_, index_, None, ArgumentType::Positional)
     }
 
     pub fn new_flag(
@@ -87,7 +92,7 @@ impl Argument {
         options_: Option<Vec<ArgumentOption>>,
         default_val: Option<Content>
     ) -> Self {
-        Argument::new(name_, cl_identifiers_, DataType::Bool, options_, -1, default_val)
+        Argument::new(name_, cl_identifiers_, DataType::Bool, options_, -1, default_val, ArgumentType::Flag)
     }
 
     /* AUX */
@@ -119,7 +124,7 @@ impl Argument {
         self.index
     }
 
-    pub fn get_type(name: &str, options: &Vec<ArgumentOption>, data_type_: &DataType) -> Option<ArgumentType> {
+    pub fn guess_type(name: &str, options: &Vec<ArgumentOption>, data_type_: &DataType) -> Option<ArgumentType> {
         if name.is_empty() {
             return None;
         }
@@ -135,6 +140,10 @@ impl Argument {
         }
         
         return Some(ArgumentType::Positional);
+    }
+
+    pub fn get_type(&self) -> ArgumentType{
+        self.arg_type
     }
 
     pub fn parse_name(name: &str) -> Option<String> {
