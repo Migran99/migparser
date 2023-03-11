@@ -3,41 +3,49 @@ This crates implements a very simple argument parser inspired by the Python one.
 
 ## Example
 ```rust
-use migparser::ArgumentParser;
-use migparser::ContentsTypes;
-use migparser::ArgumentOptions;
+use migparser::{ArgumentParser, DataType, ArgumentOption};
 
-fn main () {
+fn main() -> Result<(), String>{
     let mut parser = ArgumentParser::new();
+    /* The type of argument (flag, positional, ...) is identified 
+        by the name of the argument and data type.
+     */
+    parser.add_argument("positionalarg",
+                        None, 
+                        DataType::String , 
+                        None, 
+                        None
+                        )?;
 
-    // The "--" prefix makes it optional.
-    parser.add_argument("--number", ContentsTypes::Int, None, None);
+    parser.add_argument("--necessaryarg",
+                        Some(vec!["-na".to_owned()]),
+                        DataType::Int,
+                        Some(vec![ArgumentOption::Necessary]),
+                        None
+                        )?;
+    parser.add_argument("--optionalarg",
+                Some(vec!["-oa".to_owned()]),
+                        DataType::Float,
+                        None,
+                        None
+                        )?;
+    parser.add_argument("--flagarg",
+                        Some(vec!["-f".to_owned()]),
+                        DataType::Bool,
+                        Some(vec![ArgumentOption::StoreTrue]), /* StoreTrue or StoreFalse for flag */
+                        None
+                        )?;
 
-    // No prefix means necessary by default.
-    parser.add_argument("name", ContentsTypes::String, None, None);
-
-    // Options used to make it necessary and have the store-true 
-    // behaviour.
-    parser.add_argument("--flag", ContentsTypes::Bool, 
-            Some(vec![ArgumentOptions::STORE_TRUE, ArgumentOptions::NECESSARY]), None);
-    parser.print_data();    
-
+    parser.print_data();
     parser.parse_arguments();
     parser.print_data();
 
-    let name : String = parser.get_value("name").unwrap();
-    println!("The name is {name}");
-
-    match parser.get_value::<i32>("number") {
-        Some(i) => {println!("The number is {i}");},
-        None => {},
-    }
-    
+    Ok(())
 }
 ```
 
 
 Run it
 ```bash
-cargo run name miguel --number 8 --flag
+cargo run miguel -na 1 -f 1 -oa 2.3
 ```
