@@ -1,5 +1,5 @@
 use migformatting::Formatting;
-use std::{env, string};
+use std::{env};
 
 mod argument;
 use argument::Content;
