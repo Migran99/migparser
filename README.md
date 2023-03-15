@@ -2,47 +2,7 @@
 This crates implements a very simple argument parser inspired by the Python one. It allows adding arguments of different types (int, uint, bool, string, float) and customize the behaviour with different options (necessary, store-true, store-false, ...).
 
 ## Example
-```rust
-use migparser::{ArgumentParser, DataType, ArgumentOption};
-
-fn main() -> Result<(), String>{
-    let mut parser = ArgumentParser::new();
-    /* The type of argument (flag, positional, ...) is identified 
-        by the name of the argument and data type.
-     */
-    parser.add_argument("positionalarg",
-                        None, 
-                        DataType::String , 
-                        None, 
-                        None
-                        )?;
-
-    parser.add_argument("--necessaryarg",
-                        Some(vec!["-na".to_owned()]),
-                        DataType::Int,
-                        Some(vec![ArgumentOption::Necessary]),
-                        None
-                        )?;
-    parser.add_argument("--optionalarg",
-                Some(vec!["-oa".to_owned()]),
-                        DataType::Float,
-                        None,
-                        None
-                        )?;
-    parser.add_argument("--flagarg",
-                        Some(vec!["-f".to_owned()]),
-                        DataType::Bool,
-                        Some(vec![ArgumentOption::StoreTrue]), /* StoreTrue or StoreFalse for flag */
-                        None
-                        )?;
-
-    parser.print_data();
-    parser.parse_arguments();
-    parser.print_data();
-
-    Ok(())
-}
-```
+https://github.com/Migran99/migparser/blob/aef2b1ca64f8f2db398c91f5e339fd6b4972cd92/src/bin/demo.rs?plain=1#L1-L39
 
 
 Run it
