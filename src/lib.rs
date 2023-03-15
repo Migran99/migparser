@@ -235,7 +235,6 @@ impl ArgumentParser {
                             if let Some(d) = data {
                                 argument.set_data(d);
                             }
-                            println!("optional");
                             argument.set_parsed();
                             used_cl_args[i + 1] = true;
                         }
