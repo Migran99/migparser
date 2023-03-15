@@ -1,6 +1,6 @@
 mod contents;
 pub use contents::Content;
-pub use contents::{DataType, ExtractFromContents};
+pub use contents::{DataType, ExtractFromContents, ListType, ContentList};
 /*
 TODO:
    - ArgumentOptions -> to enum
@@ -25,6 +25,7 @@ pub enum ArgumentOption {
     StoreTrue,
     StoreFalse,
     Necessary,
+    NArgs(usize),
 }
 
 #[derive(Debug, Clone)]
@@ -36,7 +37,8 @@ pub struct Argument {
     pub options: Vec<ArgumentOption>,
     parsed: bool,
     index: i32,
-    arg_type: ArgumentType
+    arg_type: ArgumentType,
+    pub n_args: usize
 }
 impl Argument {
     /* Creators
@@ -53,7 +55,8 @@ impl Argument {
         options_: Option<Vec<ArgumentOption>>,
         index_: i32,
         default_val: Option<Content>,
-        arg_type_: ArgumentType
+        arg_type_: ArgumentType,
+        n_args_ : usize
     ) -> Self {
         Argument {
             name: name_.to_owned(),
@@ -63,7 +66,8 @@ impl Argument {
             options: options_.unwrap_or_default(),
             parsed: false,
             index: index_, /* Only settable at instantiation new_positional */
-            arg_type: arg_type_
+            arg_type: arg_type_,
+            n_args: n_args_
         }
     }
     pub fn new_optional(
@@ -71,9 +75,10 @@ impl Argument {
         cl_identifiers_: Vec<String>,
         data_type_: DataType,
         options_: Option<Vec<ArgumentOption>>,
-        default_val: Option<Content>
+        default_val: Option<Content>,
+        n_args_ : usize
     ) -> Self {
-        Argument::new(name_, cl_identifiers_, data_type_, options_, -1, default_val, ArgumentType::Optional)
+        Argument::new(name_, cl_identifiers_, data_type_, options_, -1, default_val, ArgumentType::Optional, n_args_)
     }
 
     pub fn new_positional(
@@ -83,7 +88,7 @@ impl Argument {
         options_: Option<Vec<ArgumentOption>>,
         index_: i32,
     ) -> Self {
-        Argument::new(name_, cl_identifiers_, data_type_, options_, index_, None, ArgumentType::Positional)
+        Argument::new(name_, cl_identifiers_, data_type_, options_, index_, None, ArgumentType::Positional, 1)
     }
 
     pub fn new_flag(
@@ -92,7 +97,7 @@ impl Argument {
         options_: Option<Vec<ArgumentOption>>,
         default_val: Option<Content>
     ) -> Self {
-        Argument::new(name_, cl_identifiers_, DataType::Bool, options_, -1, default_val, ArgumentType::Flag)
+        Argument::new(name_, cl_identifiers_, DataType::Bool, options_, -1, default_val, ArgumentType::Flag, 1)
     }
 
     /* AUX */
@@ -103,9 +108,10 @@ impl Argument {
         if self.is_parsed() {
             return false;
         }
-        if self.data_type != data.get_type() {
-            return false;
-        }
+        // if self.data_type != data.get_type() {
+        //     return false;
+        // }
+        println!("{:?}", data);
         self.data = Some(data);
         return true;
     }
@@ -122,6 +128,16 @@ impl Argument {
 
     pub fn get_index(&self) -> i32 {
         self.index
+    }
+    pub fn get_n_args(opts: &Vec<ArgumentOption>) -> usize{
+        let mut ret: usize = 1;
+        for o in opts {
+            match o {
+                ArgumentOption::NArgs(i) => {if *i > 0 {ret = *i;}},
+                _ => {}
+            }
+        }
+        ret
     }
 
     pub fn guess_type(name: &str, options: &Vec<ArgumentOption>, data_type_: &DataType) -> Option<ArgumentType> {
