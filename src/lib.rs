@@ -1,9 +1,9 @@
 use migformatting::Formatting;
-use std::{env};
+use std::{env, string};
 
 mod argument;
 use argument::Content;
-pub use argument::{Argument, ArgumentOption, ArgumentType, DataType, ExtractFromContents};
+pub use argument::{Argument, ArgumentOption, ArgumentType, DataType, ExtractFromContents, ListType, ContentList};
 
 pub struct ArgumentParser {
     arguments: Vec<Argument>,
@@ -57,6 +57,7 @@ impl ArgumentParser {
         data_type: DataType,
         options: Option<Vec<ArgumentOption>>,
         default_val: Option<Content>,
+        n_args_: usize
     ) -> Result<(), String> {
         self.arguments.push(Argument::new_optional(
             &name,
@@ -64,6 +65,7 @@ impl ArgumentParser {
             data_type,
             options,
             default_val,
+            n_args_
         ));
         Ok(())
     }
@@ -104,6 +106,7 @@ impl ArgumentParser {
         if let Some(mut i) = alias {
             identifiers.append(&mut i);
         }
+        let n_args = Argument::get_n_args(&options);
 
         /* Positional - Optional - Flags */
         let argument_type = Argument::guess_type(name, &options, &data_type);
@@ -111,7 +114,7 @@ impl ArgumentParser {
             Some(t) => {
                 match t {
                     ArgumentType::Optional => {
-                        self.add_optional(arg_name, identifiers, data_type, Some(options), data)?;
+                        self.add_optional(arg_name, identifiers, data_type, Some(options), data, n_args)?;
                     }
                     ArgumentType::Positional => {
                         // Add the necesary option if not already
@@ -182,6 +185,43 @@ impl ArgumentParser {
                 } else {
                     return None;
                 }
+            },
+            DataType::List(t) => {
+                let values_txt = text.trim().split(' ').collect::<Vec<&str>>();
+                let mut result = ContentList::new(t.clone());
+                match t {
+                    ListType::Bool => {
+                        for i in values_txt {
+                            let v = ArgumentParser::parse_text::<bool>(&i.to_owned()).unwrap();
+                            result.data.push(Content::Bool(v));
+                        }
+                    },
+                    ListType::Int => {
+                        for i in values_txt {
+                            let v = ArgumentParser::parse_text::<i32>(&i.to_owned()).unwrap();
+                            result.data.push(Content::Int(v));
+                        }
+                    },
+                    ListType::Uint => {
+                        for i in values_txt {
+                            let v = ArgumentParser::parse_text::<u32>(&i.to_owned()).unwrap();
+                            result.data.push(Content::Uint(v));
+                        }
+                    },
+                    ListType::String => {
+                        for i in values_txt {
+                            let v = ArgumentParser::parse_text::<String>(&i.to_owned()).unwrap();
+                            result.data.push(Content::String(v));
+                        }
+                    },
+                    ListType::Float => {
+                        for i in values_txt {
+                            let v = ArgumentParser::parse_text::<f32>(&i.to_owned()).unwrap();
+                            result.data.push(Content::Float(v));
+                        }
+                    },
+                }
+                Some(Content::List(result))
             }
         };
 
@@ -230,13 +270,27 @@ impl ArgumentParser {
                     ArgumentType::Optional => {
                         if argument.has_identifier(arg) && !used_cl_args[i]
                         {
+                            let n_args = argument.n_args.clone();
+                            let data_args = cl_arguments[i + 1 .. i + argument.n_args + 1].to_vec();
+                            let mut data_txt: String = String::new();
+                            
+                            for i in data_args {
+                                data_txt.push_str(&i);
+                                data_txt.push(' ');
+                            }
+
+                            println!("{} : {}", data_txt, n_args);
+                            
                             let data =
-                                ArgumentParser::parse_value(&cl_arguments[i + 1], &data_type);
+                                ArgumentParser::parse_value(&data_txt, &data_type);
                             if let Some(d) = data {
                                 argument.set_data(d);
                             }
                             argument.set_parsed();
-                            used_cl_args[i + 1] = true;
+                            for j in 0..n_args {
+                                used_cl_args[i + j] = true;
+                            }
+                            
                         }
                     }
                 }
