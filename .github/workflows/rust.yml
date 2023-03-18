@@ -19,4 +19,4 @@ jobs:
     - name: Build
       run: cargo build --verbose
     - name: Run main demo
-      run: cargo run miguel -na 1 -f 1 -oa 2.3 -la 12 34 78
+      run: cargo run miguel -na 1 -f 1 -oa 2.3 -la 12 34 78 23
