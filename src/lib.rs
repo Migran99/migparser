@@ -5,13 +5,15 @@ mod argument;
 use argument::Content;
 pub use argument::{Argument, ArgumentOption, ArgumentType, DataType, ExtractFromContents, ListType, ContentList};
 
+#[derive(Clone)]
 pub struct ArgumentParser {
     arguments: Vec<Argument>,
     positional_cursor: i32,
 }
 
 impl ArgumentParser {
-    /* Creation */
+    /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+    /* Creation +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
     pub fn new() -> ArgumentParser {
         ArgumentParser {
             arguments: vec![],
@@ -19,7 +21,8 @@ impl ArgumentParser {
         }
     }
 
-    /* Argument type handler */
+    /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+    /* Arguments ++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
     fn add_flag(
         &mut self,
         name: String,
@@ -70,79 +73,8 @@ impl ArgumentParser {
         Ok(())
     }
 
-    /* Argument API */
-    pub fn add_argument(
-        &mut self,
-        name: &str,
-        alias: Option<Vec<String>>,
-        data_type: DataType,
-        options_: Option<Vec<ArgumentOption>>,
-        default_value: Option<Content>,
-    ) -> Result<(), String> {
-        /* Set-up*/
-        let mut data: Option<Content> = default_value.clone();
-        let mut options = options_.unwrap_or_default();
-
-        /* Bool */
-        if data_type == DataType::Bool {
-            if options.contains(&ArgumentOption::StoreFalse) {
-                data = Some(Content::Bool(true));
-            } else {
-                /* StoreTrue by default */
-                data = Some(Content::Bool(false));
-
-                if !options.contains(&ArgumentOption::StoreFalse) {
-                    options.push(ArgumentOption::StoreTrue);
-                }
-            }
-        }
-
-        let arg_name = match Argument::parse_name(name) {
-            Some(n) => n,
-            None => name.into(),
-        };
-        let cl_name = name.to_owned(); // keeping --arg if present
-        let mut identifiers = vec![cl_name.clone()];
-        if let Some(mut i) = alias {
-            identifiers.append(&mut i);
-        }
-        let n_args = Argument::get_n_args(&options);
-
-        /* Positional - Optional - Flags */
-        let argument_type = Argument::guess_type(name, &options, &data_type);
-        match argument_type {
-            Some(t) => {
-                match t {
-                    ArgumentType::Optional => {
-                        self.add_optional(arg_name, identifiers, data_type, Some(options), data, n_args)?;
-                    }
-                    ArgumentType::Positional => {
-                        // Add the necesary option if not already
-                        if !options.contains(&ArgumentOption::Necessary) {
-                            options.push(ArgumentOption::Necessary);
-                        }
-                        let index = self.positional_cursor;
-                        self.positional_cursor = self.positional_cursor + 1;
-                        self.add_positional(
-                            arg_name,
-                            identifiers,
-                            data_type,
-                            Some(options),
-                            index,
-                        )?;
-                    }
-                    ArgumentType::Flag => {
-                        self.add_flag(arg_name, identifiers, Some(options), data)?;
-                    }
-                }
-            }
-            None => {
-                return Err("Invalid name for arg!".to_owned());
-            }
-        }
-        Ok(())
-    }
-
+    /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+    /* Parsing aux. +++++++++++++++++++++++++++++++++++++++++++++++++++++ */
     fn parse_text<T: std::str::FromStr>(text: &String) -> Option<T> {
         let parsed = text.parse::<T>().ok();
         match parsed {
@@ -239,6 +171,7 @@ impl ArgumentParser {
         let arg_name = argument.name.clone();
         let arg_type = argument.get_type();
         let data_type = argument.data_type.clone();
+        let cl_n_args: usize = cl_arguments.len();
         for (i, arg) in cl_arguments.iter().enumerate() {
             if i != 0 {
                 match arg_type {
@@ -271,6 +204,10 @@ impl ArgumentParser {
                         if argument.has_identifier(arg) && !used_cl_args[i]
                         {
                             let n_args = argument.n_args.clone();
+                            if i + n_args > cl_n_args {
+                                println!("Not enough arguments for list ({n_args},{cl_n_args})! ");
+                                panic!();
+                            }
                             let data_args = cl_arguments[i + 1 .. i + argument.n_args + 1].to_vec();
                             let mut data_txt: String = String::new();
                             
@@ -278,8 +215,6 @@ impl ArgumentParser {
                                 data_txt.push_str(&i);
                                 data_txt.push(' ');
                             }
-
-                            println!("{} : {}", data_txt, n_args);
                             
                             let data =
                                 ArgumentParser::parse_value(&data_txt, &data_type);
@@ -311,9 +246,92 @@ impl ArgumentParser {
         }
     }
 
+    /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+    /* User API +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+     pub fn add_argument(
+        &mut self,
+        name: &str,
+        alias: Option<Vec<String>>,
+        data_type: DataType,
+        options_: Option<Vec<ArgumentOption>>,
+        default_value: Option<Content>,
+    ) -> Result<(), String> {
+        /* Set-up*/
+        let mut data: Option<Content> = default_value.clone();
+        let mut options = options_.unwrap_or_default();
+
+        /* Bool */
+        if data_type == DataType::Bool {
+            if options.contains(&ArgumentOption::StoreFalse) {
+                data = Some(Content::Bool(true));
+            } else {
+                /* StoreTrue by default */
+                data = Some(Content::Bool(false));
+
+                if !options.contains(&ArgumentOption::StoreFalse) {
+                    options.push(ArgumentOption::StoreTrue);
+                }
+            }
+        }
+
+        let arg_name = match Argument::parse_name(name) {
+            Some(n) => n,
+            None => name.into(),
+        };
+        let cl_name = name.to_owned(); // keeping --arg if present
+        let mut identifiers = vec![cl_name.clone()];
+        if let Some(mut i) = alias {
+            identifiers.append(&mut i);
+        }
+        let n_args = Argument::get_n_args(&options);
+
+        /* Positional - Optional - Flags */
+        let argument_type = Argument::guess_type(name, &options, &data_type);
+        match argument_type {
+            Some(t) => {
+                match t {
+                    ArgumentType::Optional => {
+                        self.add_optional(arg_name, identifiers, data_type, Some(options), data, n_args)?;
+                    }
+                    ArgumentType::Positional => {
+                        // Add the necesary option if not already
+                        if !options.contains(&ArgumentOption::Necessary) {
+                            options.push(ArgumentOption::Necessary);
+                        }
+                        let index = self.positional_cursor;
+                        self.positional_cursor = self.positional_cursor + 1;
+                        self.add_positional(
+                            arg_name,
+                            identifiers,
+                            data_type,
+                            Some(options),
+                            index,
+                        )?;
+                    }
+                    ArgumentType::Flag => {
+                        self.add_flag(arg_name, identifiers, Some(options), data)?;
+                    }
+                }
+            }
+            None => {
+                return Err("Invalid name for arg!".to_owned());
+            }
+        }
+        Ok(())
+    }
+
     pub fn parse_arguments(&mut self) {
         let arguments: Vec<String> = env::args().collect();
         println!("{}", format!("Arguments: \n {arguments:?}"));
+        let mut used_arguments: Vec<bool> = vec![false; arguments.len()];
+        for arg_ix in 0..self.arguments.len() { 
+            self.parse_arg(&arguments, &mut used_arguments, arg_ix);
+        }
+    }
+
+    pub fn parse_arguments_from_text(&mut self, text: String) {
+        let mut arguments: Vec<String> = text.split(" ").map(|f| f.to_owned()).collect();
+        arguments.insert(0, "program_name".to_owned());
         let mut used_arguments: Vec<bool> = vec![false; arguments.len()];
         for arg_ix in 0..self.arguments.len() { 
             self.parse_arg(&arguments, &mut used_arguments, arg_ix);
@@ -334,7 +352,8 @@ impl ArgumentParser {
         }
     }
 
-    // Display functions
+    /* ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
+    /* API Aux. +++++++++++++++++++++++++++++++++++++++++++++++++++++++++ */
     pub fn print_data(&self) {
         println!("##### Arguments");
         for d in self.arguments.iter() {

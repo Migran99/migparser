@@ -37,9 +37,14 @@ fn main() -> Result<(), String> {
         None,
     )?;
 
+    let mut parser2 = parser.clone();
+
     parser.print_data();
     parser.parse_arguments();
     parser.print_data();
+
+    parser2.parse_arguments_from_text("miguel -na 1 -f 1 -oa 2.3 -la 12 34 78 23".to_owned());
+    parser2.print_data();
 
     Ok(())
 }
