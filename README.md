@@ -3,6 +3,7 @@
 This crates implements a very simple argument parser inspired by the Python one. It allows adding arguments of different types (int, uint, bool, string, float) and customize the behaviour with different options (necessary, store-true, store-false, ...).
 
 ## Example
+
 ```rust
 use migparser::{ArgumentOption, ArgumentParser, DataType, ListType};
 
